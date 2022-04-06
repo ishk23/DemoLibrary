@@ -7,37 +7,36 @@ namespace Library.Controllers
 {
     public class BookController : Controller, IBook
     {
-        private readonly ApplicationDbContext _db;
+        private readonly IBookLogic _book;
 
-        public BookController(ApplicationDbContext db)
+        public BookController(IBookLogic book)
         {
-            _db = db;
+            _book = book;
         }
 
         // POST: Book/Create
         [HttpPost]
-        public ActionResult Create(Book book)
+        public async Task<ActionResult> Create(Book book)
         {
             try
             {
-                _ = _db.Add(book);
-                var changes = _db.SaveChanges();
+                await _book.AddBook(book);
                 return Json(new { IsProcessDone = true, ProcessMessage = "Success!" });
-
             }
             catch
             {
-                return View();
+                return BadRequest();
             }
-        }
+
+            }
 
         [HttpGet]
-        public ActionResult GetBooks()
+        public async Task<ActionResult> GetBooks()
         {
             try
             {
-                var books = _db.Books.ToList();
-                return Json(books);
+                var allBooks = await _book.GetAllBooks();
+                return Json(allBooks);
             }
             catch
             {
@@ -46,12 +45,12 @@ namespace Library.Controllers
 
         }
         [HttpGet]
-        public ActionResult FindById(int id)
+        public async Task<ActionResult> FindById(int id)
         {
             try
             {
-                var book = _db.Books.Find(id);
-                return Json(book);
+                var RequestedBook = await _book.FindBookById(id);
+                return Json(RequestedBook);
             }
             catch
             {
@@ -60,34 +59,38 @@ namespace Library.Controllers
 
         }
         [HttpDelete]
-        public ActionResult DeleteBook(int id)
+        public async Task<ActionResult> DeleteBook(int id)
         {
-            var book = _db.Books.Find(id);
-            if (book != null)
+            try
             {
-                _db.Books.Remove(book);
-                _db.SaveChanges();
-                return Json(new { IsProcessDone = true, ProcessMessage = "Success!" });
+                var result = _book.RemoveBook(id);
+                if (await result == true){
+                    return Json(new { IsProcessDone = true, ProcessMessage = "Success!" });
+                }
+                else
+                {
+                    return Json(new { IsProcessDone = false, ProcessMessage = "Failure :(" });
+                }
             }
-            else
+            catch
             {
                 return Json(new { IsProcessDone = false, ProcessMessage = "Failure :(" });
             }
         }
 
         [HttpPut]
-        public ActionResult UpdateBook(Book book)
+        public async Task<ActionResult> UpdateBook(Data.Book book)
         {
             try
             {
-                _ = _db.Books.Update(book);
-                _db.SaveChanges();
+                await _book.UpdateBookDetails(book);
                 return Json(new { IsProcessDone = true, ProcessMessage = "Success!" });
             }
             catch
             {
                 return Json(new { IsProcessDone = false, ProcessMessage = "Failure :(" });
             }
+            
         }
 
     }
